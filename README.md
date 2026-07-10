@@ -299,8 +299,3 @@ n8n-rag-customer-support-agent
 
 <img src="screenshots\email_reply.png" width="1000">
 
----
-
-# 📄 License
-
-This project is licensed under the MIT License.
