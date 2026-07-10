@@ -293,11 +293,11 @@ n8n-rag-customer-support-agent
 
 ### Workflow
 
-<img src="screenshots/workflow.png" width="1000">
+<img src="screenshots\Workflow.png" width="1000">
 
 ### Example Response
 
-*(Add screenshots of incoming emails and generated replies here.)*
+<img src="screenshots\email_reply.png" width="1000">
 
 ---
 
