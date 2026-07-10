@@ -1,0 +1,477 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -176,
+        32
+      ],
+      "id": "efeb3ed6-80fd-4790-bed0-06275e24b343",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "A3sDWwEylPAEOmwk",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.text }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Customer support",
+              "description": "An email related to aadhar card queries or questions regarding the process related to addhar card "
+            },
+            {
+              "category": "Other",
+              "description": "An email that is not adhar card realted , or not a customer support question "
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        32
+      ],
+      "id": "6c68d415-eca6-4ca4-8da7-c063e6484640",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        304
+      ],
+      "id": "8de3bc20-1fb4-4869-a57c-6778b2bf0b89",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        544,
+        432
+      ],
+      "id": "6500e62b-136e-4f70-9bf7-bad46fdb5dd9",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "mode": "load",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "n8n-rag-workflow",
+          "mode": "list",
+          "cachedResultName": "n8n-rag-workflow"
+        },
+        "prompt": "={{ $json.text }}",
+        "topK": 5,
+        "options": {
+          "pineconeNamespace": "FAQ"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        16
+      ],
+      "id": "b64d0e9b-10d3-43ed-a6c2-d2f37de16db9",
+      "name": "Pinecone Vector Store1",
+      "credentials": {
+        "pineconeApi": {
+          "id": "lqNtOQIAHczPxvB9",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        208
+      ],
+      "id": "45b17995-516b-4dde-88b5-1f0eaf853c01",
+      "name": "Embeddings OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const docs = $input.all();\n\nconst scores = docs.map(d => d.json.score);\n\nconst average =\nscores.reduce((a,b)=>a+b,0)/scores.length;\n\nreturn [{\n    json:{\n        averageScore: average,\n        docs: docs.map(d=>d.json)\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        32
+      ],
+      "id": "4b2f7e57-79b1-479c-ac3a-acbf282f9e42",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d457ae83-cf49-4a9a-ae1c-90fd960d03d7",
+              "leftValue": "={{ $json.averageScore }}",
+              "rightValue": 0.35,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1280,
+        272
+      ],
+      "id": "720b8da0-96cd-44eb-b997-02a0641dc062",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "message": "Sorry we could not find a matching answer",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1328,
+        560
+      ],
+      "id": "3080d297-303f-40cf-b977-e4c584807bae",
+      "name": "Reply to a message1",
+      "webhookId": "e7ea9ade-a427-40b9-8a1f-a43de57bc5c4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "A3sDWwEylPAEOmwk",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a helpful customer support assistant.\n\nAnswer the user's question using ONLY the context provided below.\n\nIf the answer cannot be found in the context, reply exactly:\n\"I don't have enough information to answer that.\"\n\nKeep the answer concise and accurate.\n\nContext:\n{{ $('Pinecone Vector Store1').item.json.document.pageContent }}\n\nUser Question:\n{{ $('Gmail Trigger').item.json.text }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1488,
+        176
+      ],
+      "id": "f71323eb-86e5-4968-849f-2500629017f9",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1488,
+        336
+      ],
+      "id": "419769b9-3631-4967-aa5f-1e08a172ff42",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "emailType": "text",
+        "message": "={{ $json.text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1840,
+        176
+      ],
+      "id": "163eff56-829f-4b93-a12f-aeaf2d0040b9",
+      "name": "Reply to a message2",
+      "webhookId": "92792680-8130-4209-b70a-0c2f73a3b2de",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "A3sDWwEylPAEOmwk",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Gmail Trigger": [
+      {
+        "json": {
+          "id": "19f4cd11afc660c0",
+          "threadId": "19f4cd11afc660c0",
+          "labelIds": [
+            "UNREAD",
+            "IMPORTANT",
+            "CATEGORY_PERSONAL",
+            "INBOX"
+          ],
+          "sizeEstimate": 6839,
+          "headers": {
+            "delivered-to": "Delivered-To: surveatharv1604@gmail.com",
+            "received": "Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])\r\n        by mx.google.com with SMTPS id d2e1a72fcca58-848608f7912sor12843350b3a.1.2026.07.10.09.16.40\r\n        for <surveatharv1604@gmail.com>\r\n        (Google Transport Security);\r\n        Fri, 10 Jul 2026 09:16:40 -0700 (PDT)",
+            "x-received": "X-Received: by 2002:a05:6a00:2999:b0:848:46ea:bbe7 with SMTP id\r\n d2e1a72fcca58-84846eac02bmr10778417b3a.19.1783700199868; Fri, 10 Jul 2026\r\n 09:16:39 -0700 (PDT)",
+            "arc-seal": "ARC-Seal: i=1; a=rsa-sha256; t=1783700200; cv=none;\r\n        d=google.com; s=arc-20260327;\r\n        b=F1RXwxOf5XIzwNnAIbDSITYUwRfIVp6Ay4yKLCftqFZMkVK44elv+Oc2PpUYtIsS6F\r\n         Q5Sb04E7sSCMu+IKRgLED7snG9noAK1D+WDIbDCyPRxJewJjyKP7ci8R2t/+XM8ysd5/\r\n         J3fGab1cENRibE7Xfs68XM1KpU7ntYT/7ScAV+tbIR+d76n+g/49HU7MXN30MMhPlzY0\r\n         JDE8cfWtP9mbw99LedbpeMM6aBfkE9qCRbRTARCcQoE1XYj0yIuBubKnbVigAURos2hF\r\n         hNhI/jlS3yOO5n+pcVZtFY5WbU+cwgoQ6GHhGmZshoxJkvGlls6sl9yzMLmpz6fQmfQ1\r\n         /svw==",
+            "arc-message-signature": "ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;\r\n        h=to:subject:message-id:date:from:mime-version:dkim-signature;\r\n        bh=Fv/W5ngKc+xRS4e2dN2vNd4OYkHrcIH0dXZZPSGFCgQ=;\r\n        fh=AQym6Dg7IxWGcS1cpTcS9qV+JPV0ofxHCu2G2QB7J/s=;\r\n        b=jFI9YNlkyxxLC48JmIgeoArnUDvtgT8+8PPvE+lzhajHQC4cQ/5CEWDaJ4a6G0OI6x\r\n         KHFGu5OFX/5vAQHDlef690KGOhrPr9f4wu0wCxtI6jx6oMxL6hqfrwznYL7QCJj7krUo\r\n         8aTf2XtU1yWX40Iijvvy4rJ/4XLAcXmr5dcrppcayBeImjF3mdK7xwlSgsbBnCVZJpeU\r\n         QI9GbjRCAinTiJmaWcEEyKgcmVZ9HYwYex2BGwkdebkFdMPtnLziZ2B0W7JW96evst8A\r\n         eK0s5NaTzHrdoUqAdIB7UDfFVijSTff7AmViWAzLfaKaQnqaQILiuKLLNott0jyn+qk7\r\n         i/bQ==;\r\n        dara=google.com",
+            "arc-authentication-results": "ARC-Authentication-Results: i=1; mx.google.com; arc=none",
+            "return-path": "Return-Path: <2022.atharv.surve@ves.ac.in>",
+            "received-spf": "Received-SPF: pass (google.com: domain of 2022.atharv.surve@ves.ac.in designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;",
+            "authentication-results": "Authentication-Results: mx.google.com;\r\n       dkim=pass header.i=@ves.ac.in header.s=google header.b=ZTcVDG+N;\r\n       arc=pass (i=1);\r\n       spf=pass (google.com: domain of 2022.atharv.surve@ves.ac.in designates 209.85.220.41 as permitted sender) smtp.mailfrom=2022.atharv.surve@ves.ac.in;\r\n       dara=pass header.i=@gmail.com",
+            "dkim-signature": "DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;\r\n        d=ves.ac.in; s=google; t=1783700200; x=1784305000; dara=google.com;\r\n        h=content-type:to:subject:message-id:date:from:mime-version:from:to\r\n         :cc:subject:date:message-id:reply-to:content-type;\r\n        bh=Fv/W5ngKc+xRS4e2dN2vNd4OYkHrcIH0dXZZPSGFCgQ=;\r\n        b=ZTcVDG+NQe3FonT+oT04HGe9f1jCy0v5WjF7aYNB8rsU3nVz48My0PEBJTfCaT/ltW\r\n         FGDqTRe238ExBbhu4T5Hu+RRI3RAZ3CdRNMBk65AzAHjMgWT1DGRyipGLd5KDQy+07Un\r\n         r45G1GMq55+v8tscyblHtAn7gH4T9d//aS4Uk=",
+            "x-google-dkim-signature": "X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;\r\n        d=1e100.net; s=20251104; t=1783700200; x=1784305000;\r\n        h=content-type:to:subject:message-id:date:from:mime-version:x-gm-gg\r\n         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to\r\n         :content-type;\r\n        bh=Fv/W5ngKc+xRS4e2dN2vNd4OYkHrcIH0dXZZPSGFCgQ=;\r\n        b=OIp4H74y4C7VnDLkiLZSHfaz+Eq9Hp6tf9i7GEw+hjp14JJYFpOpGXT4flIhX/xY14\r\n         Kgkxf0wCy68iY75u5pF2KC+dk9fVze+1cLq7Dox4PJ4GofAZlmP0Am7L7Dt/+Vehs6KS\r\n         CvJfVeceJYBSrTc0l30asnucp6ulbJm1/+xEkXnXbm3HwDtPu7M2rrlxt7z57/uidSVH\r\n         RskdxbHo0rfcEPo+6d+UByPwlswnMVvlu2KtU4GB8pQw5Si/OaMbFG2sNeenQZzE555e\r\n         y/9qQRIbZsg0BAmtaT3e4AohQHWmPTf0mh8E6iGRV/O3BUCxbpXHn61YF7uQrKfktKlM\r\n         dS+w==",
+            "x-gm-message-state": "X-Gm-Message-State: AOJu0YzSZvm0lZKKywxIwMN5fLt9EV1j+GlXxVra+HkZi7cRKuGN8fHE\r\n\t0jwHW4/0wya41Rsh0hQMzrhKgn13voVu94yi0Ws8stkBgmVjDTt7WAY9UXRGojlQqIQ41YI+TQA\r\n\t9qE1TAYEPM0CcNbYGsWSiRCNBzxMb+6hMBOcGq+dGP424dx1AmLMdbdoCGA==",
+            "x-gm-gg": "X-Gm-Gg: AfdE7ck7FX23cjHQU+SH99aO1Ab/go/PqJtUYrBhRyA+Scw6p/CrF5QqS1eu4pKVWVA\r\n\tdRSOqBvITlKBy/ONamdqDCPYNGKx4tML3F6ajYkmOT0Ur3C2c8rFXpA+wN10DytbXLT4IpK93HN\r\n\tSJqXLqLc37SSzzwgG1c+nGI04QOMl3UCtHiqbovNknPNxIrdOr9daqNHMD5hGEkuUFfZCPoysy5\r\n\tL2SBzb72nhc+spAjprWEF23SDPqLy/ApeGFz3uQCuc8N5+r0A2uDmyWPfDx54AQ7F2YYBjQfy7r\r\n\t5CLBn0aSY55CY56uLjONysBSPKRd",
+            "mime-version": "MIME-Version: 1.0",
+            "from": "From: ATHARV SURVE <2022.atharv.surve@ves.ac.in>",
+            "date": "Date: Fri, 10 Jul 2026 21:46:29 +0530",
+            "x-gm-features": "X-Gm-Features: AVVi8CezF0RcEF25Nky5tn4Ze4bRZx2Bghk-YfCsCDyHeaI7MUu__m7YbR_AOGg",
+            "message-id": "Message-ID: <CA+xNxn_qZFVc5yhh9_yB73LPJx4WqaQqvSXszDP4u1Tej63+iA@mail.gmail.com>",
+            "subject": "Subject: Aadhar query",
+            "to": "To: Atharv Surve <surveatharv1604@gmail.com>",
+            "content-type": "Content-Type: multipart/alternative; boundary=\"000000000000cc9a2806564410a7\""
+          },
+          "html": "<div dir=\"ltr\">  I just had a baby. Can I get an Aadhaar for her?  </div>\n",
+          "text": "  I just had a baby. Can I get an Aadhaar for her?\n",
+          "textAsHtml": "<p>I just had a baby. Can I get an Aadhaar for her?</p>",
+          "subject": "Aadhar query",
+          "date": "2026-07-10T16:16:29.000Z",
+          "to": {
+            "value": [
+              {
+                "address": "surveatharv1604@gmail.com",
+                "name": "Atharv Surve"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Atharv Surve</span> &lt;<a href=\"mailto:surveatharv1604@gmail.com\" class=\"mp_address_email\">surveatharv1604@gmail.com</a>&gt;</span>",
+            "text": "\"Atharv Surve\" <surveatharv1604@gmail.com>"
+          },
+          "from": {
+            "value": [
+              {
+                "address": "2022.atharv.surve@ves.ac.in",
+                "name": "ATHARV SURVE"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">ATHARV SURVE</span> &lt;<a href=\"mailto:2022.atharv.surve@ves.ac.in\" class=\"mp_address_email\">2022.atharv.surve@ves.ac.in</a>&gt;</span>",
+            "text": "\"ATHARV SURVE\" <2022.atharv.surve@ves.ac.in>"
+          },
+          "messageId": "<CA+xNxn_qZFVc5yhh9_yB73LPJx4WqaQqvSXszDP4u1Tej63+iA@mail.gmail.com>"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply to a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Reply to a message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Operation, do nothing": {
+      "main": [
+        [
+          {
+            "node": "Reply to a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "4b0ffe12-802b-4753-b59d-5dc6bf0f71bb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "03f56fd10f411c981e95f774e9a9b0d8e6bc53d64eacb925f517e34ab1ab2a55"
+  },
+  "nodeGroups": [],
+  "id": "xCZ2fUZIHwR8hCel",
+  "tags": []
+}
